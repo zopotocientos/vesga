@@ -43,7 +43,6 @@ export default function ResultsPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 20, alignItems: 'center' }}>
         {(['all', 'new', 'seen'] as const).map((f) => (
           <button
@@ -82,6 +81,7 @@ export default function ResultsPage() {
               <tr>
                 <th>Keyword</th>
                 <th>Website</th>
+                <th>Content link</th>
                 <th>Context</th>
                 <th>Status</th>
                 <th>Found</th>
@@ -97,6 +97,21 @@ export default function ResultsPage() {
                     <a className="url-text" href={r.website_url} target="_blank" rel="noopener noreferrer">
                       {r.website_label || r.website_url}
                     </a>
+                  </td>
+                  <td>
+                    {r.match_url ? (
+                      <a
+                        href={r.match_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="url-text"
+                        style={{ color: 'var(--red)', fontSize: 12 }}
+                      >
+                        View content ↗
+                      </a>
+                    ) : (
+                      <span style={{ color: 'var(--text-3)', fontSize: 12 }}>—</span>
+                    )}
                   </td>
                   <td>
                     <p className="snippet">{r.snippet}</p>
