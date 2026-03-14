@@ -57,7 +57,6 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error(data.error)
       setScanMsg(`✓ Done — ${data.sites_scanned} sites, ${data.matches_found} matches (${data.new_matches} new)`)
 setTimeout(load, 3000)
-setTimeout(load, 6000)
     } catch (err: any) {
       setScanMsg(`✗ ${err.message}`)
       setScanError(true)
