@@ -1,0 +1,37 @@
+name: Daily keyword scan
+
+on:
+  schedule:
+    # Runs every day at 7:00 AM UTC — adjust to your timezone
+    # Use https://crontab.guru to calculate your local time
+    - cron: '0 7 * * *'
+
+  # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  scan:
+    name: Trigger scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Call scan API
+        run: |
+          RESPONSE=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.APP_URL }}/api/scan" \
+            -H "Authorization: Bearer ${{ secrets.SCAN_SECRET }}" \
+            -H "Content-Type: application/json")
+
+          echo "HTTP status: $RESPONSE"
+          echo "Response:"
+          cat /tmp/response.json
+
+          if [ "$RESPONSE" != "200" ]; then
+            echo "Scan failed with HTTP $RESPONSE"
+            exit 1
+          fi
+
+          # Print scan summary
+          MATCHES=$(cat /tmp/response.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(f\"Sites: {d.get('sites_scanned',0)} | Matches: {d.get('matches_found',0)} | New: {d.get('new_matches',0)}\")" 2>/dev/null || echo "")
+          echo "Summary: $MATCHES"
