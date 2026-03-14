@@ -13,12 +13,6 @@ export type ScanSummary = {
   scan_date: Date
 }
 
-/**
- * Sends the daily digest email.
- *
- * To activate email sending, uncomment ONE provider block below
- * and add the corresponding env vars to .env.local and Vercel.
- */
 export async function sendReport(
   matches: MatchReport[],
   summary: ScanSummary
@@ -34,31 +28,10 @@ export async function sendReport(
 
   const html = buildEmailHtml(matches, summary)
 
-  // ── Option A: Resend ──────────────────────────────────────────────────────
-  // npm install resend
-  // const { Resend } = await import('resend')
-  // const resend = new Resend(process.env.RESEND_API_KEY)
-  // await resend.emails.send({ from, to, subject, html })
-
-  // ── Option B: SendGrid ────────────────────────────────────────────────────
-  // npm install @sendgrid/mail
-  // const sgMail = (await import('@sendgrid/mail')).default
-  // sgMail.setApiKey(process.env.SENDGRID_API_KEY!)
-  // await sgMail.send({ from, to, subject, html })
-
-  // ── Option C: SMTP (nodemailer) ───────────────────────────────────────────
-  // npm install nodemailer @types/nodemailer
-  // const nodemailer = await import('nodemailer')
-  // const transporter = nodemailer.createTransport({
-  //   host: process.env.SMTP_HOST,
-  //   port: Number(process.env.SMTP_PORT),
-  //   auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  // })
-  // await transporter.sendMail({ from, to, subject, html })
-
-  // ── Fallback: log to console until a provider is configured ───────────────
-  console.log(`[Email] Subject: ${subject}`)
-  console.log(`[Email] To: ${to} | Matches: ${matches.length} total, ${newCount} new`)
+  // ── Resend ────────────────────────────────────────────────────────────────
+  const { Resend } = await import('resend')
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  await resend.emails.send({ from, to, subject, html })
 }
 
 function buildEmailHtml(matches: MatchReport[], summary: ScanSummary): string {
@@ -95,17 +68,17 @@ function buildEmailHtml(matches: MatchReport[], summary: ScanSummary): string {
   </div>
 
   ${newMatches.length > 0 ? `
-  <h2 style="font-size:15px;font-weight:600;color:#dc2626;margin:0 0 12px">🔴 New matches (${newMatches.length})</h2>
+  <h2 style="font-size:15px;font-weight:600;color:#dc2626;margin:0 0 12px">New matches (${newMatches.length})</h2>
   ${table(newMatches)}
-  ` : `<p style="color:#16a34a;font-weight:500">✅ No new matches found.</p>`}
+  ` : `<p style="color:#16a34a;font-weight:500">No new matches found.</p>`}
 
   ${oldMatches.length > 0 ? `
-  <h2 style="font-size:15px;font-weight:600;color:#d97706;margin:24px 0 12px">⚠️ Previously seen (${oldMatches.length})</h2>
+  <h2 style="font-size:15px;font-weight:600;color:#d97706;margin:24px 0 12px">Previously seen (${oldMatches.length})</h2>
   ${table(oldMatches)}
   ` : ''}
 
   <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af">
-    Sent by Keyword Monitor · <a href="${process.env.NEXT_PUBLIC_APP_URL || ''}" style="color:#9ca3af">Open dashboard</a>
+    Sent by Keyword Monitor
   </div>
 </body>
 </html>`
