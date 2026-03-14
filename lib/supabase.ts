@@ -27,6 +27,7 @@ export type ScanResult = {
   website_url: string
   website_label: string
   snippet: string
+  match_url: string | null
   is_new: boolean
   created_at: string
 }

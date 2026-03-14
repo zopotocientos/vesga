@@ -4,27 +4,17 @@ import * as cheerio from 'cheerio'
 export type ScrapeResult = {
   success: boolean
   text?: string
+  links?: { href: string; text: string }[]
   error?: string
 }
 
-/**
- * Fetches a page and extracts clean plain text.
- * Works well for static HTML pages.
- *
- * For JS-rendered pages (SPAs, React apps, etc.) that return empty content,
- * swap this function with a ScrapingBee call:
- *
- *   const res = await axios.get('https://app.scrapingbee.com/api/v1', {
- *     params: { api_key: process.env.SCRAPINGBEE_API_KEY, url, render_js: true }
- *   })
- */
 export async function scrapePage(url: string): Promise<ScrapeResult> {
   try {
     const response = await axios.get(url, {
       timeout: 20000,
       headers: {
         'User-Agent':
-          'Mozilla/5.0 (compatible; KeywordMonitor/1.0; +https://github.com/your-org/keyword-monitor)',
+          'Mozilla/5.0 (compatible; KeywordMonitor/1.0)',
         Accept: 'text/html,application/xhtml+xml',
       },
       maxRedirects: 5,
@@ -32,7 +22,25 @@ export async function scrapePage(url: string): Promise<ScrapeResult> {
 
     const $ = cheerio.load(response.data)
 
-    // Remove noise elements before extracting text
+    // Extract all links with their anchor text before removing elements
+    const links: { href: string; text: string }[] = []
+    $('a[href]').each((_, el) => {
+      const href = $(el).attr('href') || ''
+      const text = $(el).text().trim()
+
+      // Resolve relative URLs
+      let resolvedHref = href
+      try {
+        resolvedHref = new URL(href, url).toString()
+      } catch {}
+
+      // Only keep links that point somewhere useful
+      if (resolvedHref.startsWith('http') && text.length > 0) {
+        links.push({ href: resolvedHref, text })
+      }
+    })
+
+    // Remove noise before extracting plain text
     $('script, style, nav, footer, header, noscript, iframe, [aria-hidden="true"]').remove()
 
     const text = $('body')
@@ -44,7 +52,7 @@ export async function scrapePage(url: string): Promise<ScrapeResult> {
       return { success: false, error: 'Page returned empty content — may require JS rendering' }
     }
 
-    return { success: true, text }
+    return { success: true, text, links }
   } catch (err: any) {
     const msg =
       err.code === 'ECONNABORTED'
