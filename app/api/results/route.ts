@@ -17,7 +17,6 @@ export async function GET(request: Request) {
     return NextResponse.json(data)
   }
 
-  // Default: return scan results
   const { data, error } = await supabase
     .from('scan_results')
     .select('*')
@@ -26,4 +25,22 @@ export async function GET(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
+}
+
+export async function DELETE() {
+  const { error: resultsError } = await supabase
+    .from('scan_results')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000') // delete all rows
+
+  if (resultsError) return NextResponse.json({ error: resultsError.message }, { status: 500 })
+
+  const { error: runsError } = await supabase
+    .from('scan_runs')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000')
+
+  if (runsError) return NextResponse.json({ error: runsError.message }, { status: 500 })
+
+  return NextResponse.json({ success: true })
 }

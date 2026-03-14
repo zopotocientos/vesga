@@ -8,12 +8,28 @@ export default function ResultsPage() {
   const [filter, setFilter] = useState<'all' | 'new' | 'seen'>('all')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [clearing, setClearing] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
-  useEffect(() => {
+  async function load() {
+    setLoading(true)
     fetch('/api/results?limit=200')
       .then((r) => r.json())
       .then((data) => { setResults(data); setLoading(false) })
-  }, [])
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function clearAll() {
+    setClearing(true)
+    try {
+      await fetch('/api/results', { method: 'DELETE' })
+      setResults([])
+      setShowConfirm(false)
+    } finally {
+      setClearing(false)
+    }
+  }
 
   const filtered = results.filter((r) => {
     const matchesFilter =
@@ -40,6 +56,23 @@ export default function ResultsPage() {
         <div>
           <h2>Results</h2>
           <p>All keyword matches found across scans</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {showConfirm ? (
+            <>
+              <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Delete all results?</span>
+              <button className="btn btn-danger" style={{ padding: '6px 12px', fontSize: 12, border: '1px solid var(--red)' }} onClick={clearAll} disabled={clearing}>
+                {clearing ? 'Deleting…' : 'Yes, delete all'}
+              </button>
+              <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => setShowConfirm(false)}>
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12, color: 'var(--red)' }} onClick={() => setShowConfirm(true)}>
+              🗑 Clear all results
+            </button>
+          )}
         </div>
       </div>
 
