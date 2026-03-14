@@ -2,6 +2,7 @@ export type MatchReport = {
   keyword_name: string
   website_label: string
   website_url: string
+  match_url?: string
   snippet: string
   is_new: boolean
 }
@@ -28,7 +29,6 @@ export async function sendReport(
 
   const html = buildEmailHtml(matches, summary)
 
-  // ── Resend ────────────────────────────────────────────────────────────────
   const { Resend } = await import('resend')
   const resend = new Resend(process.env.RESEND_API_KEY)
   await resend.emails.send({ from, to, subject, html })
@@ -44,6 +44,12 @@ function buildEmailHtml(matches: MatchReport[], summary: ScanSummary): string {
       <td style="padding:10px 8px;border-bottom:1px solid #e5e7eb">
         <a href="${m.website_url}" style="color:#2563eb;text-decoration:none">${escape(m.website_label || m.website_url)}</a>
       </td>
+      <td style="padding:10px 8px;border-bottom:1px solid #e5e7eb">
+        ${m.match_url
+          ? `<a href="${m.match_url}" style="color:#dc2626;font-size:12px;font-family:monospace;word-break:break-all">View content ↗</a>`
+          : '<span style="color:#9ca3af;font-size:12px">—</span>'
+        }
+      </td>
       <td style="padding:10px 8px;font-size:13px;color:#6b7280;border-bottom:1px solid #e5e7eb;font-style:italic">${escape(m.snippet)}</td>
     </tr>`
 
@@ -53,6 +59,7 @@ function buildEmailHtml(matches: MatchReport[], summary: ScanSummary): string {
         <tr style="background:#f9fafb">
           <th style="padding:8px;text-align:left;font-size:12px;text-transform:uppercase;color:#6b7280;letter-spacing:.05em">Keyword</th>
           <th style="padding:8px;text-align:left;font-size:12px;text-transform:uppercase;color:#6b7280;letter-spacing:.05em">Website</th>
+          <th style="padding:8px;text-align:left;font-size:12px;text-transform:uppercase;color:#6b7280;letter-spacing:.05em">Content link</th>
           <th style="padding:8px;text-align:left;font-size:12px;text-transform:uppercase;color:#6b7280;letter-spacing:.05em">Context</th>
         </tr>
       </thead>
@@ -61,7 +68,7 @@ function buildEmailHtml(matches: MatchReport[], summary: ScanSummary): string {
 
   return `<!DOCTYPE html>
 <html>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:720px;margin:0 auto;padding:32px 16px;color:#111827;background:#fff">
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:760px;margin:0 auto;padding:32px 16px;color:#111827;background:#fff">
   <div style="border-bottom:2px solid #111827;padding-bottom:16px;margin-bottom:24px">
     <h1 style="margin:0;font-size:20px;font-weight:700">Keyword Monitor</h1>
     <p style="margin:4px 0 0;font-size:13px;color:#6b7280">${summary.scan_date.toLocaleString()} · ${summary.sites_scanned} sites scanned · ${summary.matches_found} matches</p>
