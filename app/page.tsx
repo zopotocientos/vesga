@@ -8,29 +8,36 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({ keywords: 0, websites: 0, totalMatches: 0, newMatches: 0 })
   const [scanning, setScanning] = useState(false)
   const [scanMsg, setScanMsg] = useState('')
+  const [scanError, setScanError] = useState(false)
   const [loading, setLoading] = useState(true)
 
   async function load() {
-    const [runsRes, kwRes, wsRes, resultsRes] = await Promise.all([
-      fetch('/api/results?type=runs&limit=10'),
-      fetch('/api/keywords'),
-      fetch('/api/websites'),
-      fetch('/api/results?limit=500'),
-    ])
-    const [runsData, kwData, wsData, resultsData] = await Promise.all([
-      runsRes.json(),
-      kwRes.json(),
-      wsRes.json(),
-      resultsRes.json(),
-    ])
-    setRuns(runsData)
-    setStats({
-      keywords: kwData.length,
-      websites: wsData.length,
-      totalMatches: resultsData.length,
-      newMatches: resultsData.filter((r: any) => r.is_new).length,
-    })
-    setLoading(false)
+    setLoading(true)
+    try {
+      const [runsRes, kwRes, wsRes, resultsRes] = await Promise.all([
+        fetch('/api/results?type=runs&limit=10'),
+        fetch('/api/keywords'),
+        fetch('/api/websites'),
+        fetch('/api/results?limit=500'),
+      ])
+      const [runsData, kwData, wsData, resultsData] = await Promise.all([
+        runsRes.json(),
+        kwRes.json(),
+        wsRes.json(),
+        resultsRes.json(),
+      ])
+      setRuns(Array.isArray(runsData) ? runsData : [])
+      setStats({
+        keywords: Array.isArray(kwData) ? kwData.length : 0,
+        websites: Array.isArray(wsData) ? wsData.length : 0,
+        totalMatches: Array.isArray(resultsData) ? resultsData.length : 0,
+        newMatches: Array.isArray(resultsData) ? resultsData.filter((r: any) => r.is_new).length : 0,
+      })
+    } catch (err) {
+      console.error('Failed to load dashboard data', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -38,10 +45,13 @@ export default function DashboardPage() {
   async function triggerScan() {
     setScanning(true)
     setScanMsg('Running scan…')
+    setScanError(false)
     try {
+      const secret = process.env.NEXT_PUBLIC_SCAN_SECRET
+      if (!secret) throw new Error('NEXT_PUBLIC_SCAN_SECRET is not set — redeploy Netlify after adding it')
       const res = await fetch('/api/scan', {
         method: 'POST',
-        headers: { authorization: `Bearer ${process.env.NEXT_PUBLIC_SCAN_SECRET}` },
+        headers: { authorization: `Bearer ${secret}` },
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
@@ -49,6 +59,7 @@ export default function DashboardPage() {
       load()
     } catch (err: any) {
       setScanMsg(`✗ ${err.message}`)
+      setScanError(true)
     } finally {
       setScanning(false)
     }
@@ -73,12 +84,15 @@ export default function DashboardPage() {
           <h2>Dashboard</h2>
           <p>Monitor overview and scan history</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {scanMsg && (
-            <span style={{ fontSize: 12, color: scanning ? 'var(--accent)' : 'var(--text-2)' }}>
+            <span style={{ fontSize: 12, color: scanError ? 'var(--red)' : scanning ? 'var(--accent)' : 'var(--green)' }}>
               {scanMsg}
             </span>
           )}
+          <button className="btn btn-ghost" onClick={load} disabled={loading}>
+            ↻ Refresh
+          </button>
           <button
             className={`btn btn-primary ${scanning ? 'btn-scan-running' : ''}`}
             onClick={triggerScan}
