@@ -41,7 +41,7 @@ export default function DashboardPage() {
     try {
       const res = await fetch('/api/scan', {
         method: 'POST',
-        headers: { authorization: `Bearer ${prompt('Enter your SCAN_SECRET to authorize')}` },
+        headers: { authorization: `Bearer ${process.env.NEXT_PUBLIC_SCAN_SECRET}` },
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
