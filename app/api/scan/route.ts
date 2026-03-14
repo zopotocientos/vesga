@@ -4,16 +4,14 @@ import { scrapePage } from '@/lib/scraper'
 import { findMatches } from '@/lib/matcher'
 import { sendReport, type MatchReport } from '@/lib/email'
 
-export const maxDuration = 60 // Vercel Pro: 60s; Hobby: reduce to 10s
+export const maxDuration = 60
 
 export async function POST(request: Request) {
-  // Verify the shared secret to prevent unauthorized triggers
   const auth = request.headers.get('authorization')
   if (auth !== `Bearer ${process.env.SCAN_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Create a scan run record
   const { data: scanRun, error: runError } = await supabase
     .from('scan_runs')
     .insert({ status: 'running' })
@@ -47,7 +45,7 @@ export async function POST(request: Request) {
     let newMatches = 0
 
     for (const website of websites) {
-      const { success, text, error: scrapeError } = await scrapePage(website.url)
+      const { success, text, links, error: scrapeError } = await scrapePage(website.url)
       sitesScanned++
 
       if (!success || !text) {
@@ -55,12 +53,11 @@ export async function POST(request: Request) {
         continue
       }
 
-      const matches = findMatches(text, keywordNames)
+      const matches = findMatches(text, keywordNames, links)
 
       for (const match of matches) {
         const keyword = keywords.find((k) => k.name === match.keyword)!
 
-        // Determine if this keyword+website combination has been seen before
         const { data: prior } = await supabase
           .from('scan_results')
           .select('id')
@@ -80,6 +77,7 @@ export async function POST(request: Request) {
           website_url: website.url,
           website_label: website.label || website.url,
           snippet: match.snippet,
+          match_url: match.matchUrl ?? null,
           is_new: isNew,
         })
 
@@ -87,13 +85,13 @@ export async function POST(request: Request) {
           keyword_name: match.keyword,
           website_label: website.label || website.url,
           website_url: website.url,
+          match_url: match.matchUrl,
           snippet: match.snippet,
           is_new: isNew,
         })
       }
     }
 
-    // Mark scan as complete
     await supabase
       .from('scan_runs')
       .update({
@@ -105,7 +103,6 @@ export async function POST(request: Request) {
       })
       .eq('id', scanRun.id)
 
-    // Send email if there are matches, or if SEND_EMPTY_REPORTS is set
     const shouldEmail = reportMatches.length > 0 || process.env.SEND_EMPTY_REPORTS === 'true'
     if (shouldEmail) {
       await sendReport(reportMatches, {
