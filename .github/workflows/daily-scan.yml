@@ -4,7 +4,7 @@ on:
   schedule:
     # Runs every day at 7:00 AM UTC — adjust to your timezone
     # Use https://crontab.guru to calculate your local time
-    - cron: '0 7 * * *'
+    - cron: '0 11 * * *'
 
   # Allow manual trigger from GitHub Actions UI
   workflow_dispatch:
