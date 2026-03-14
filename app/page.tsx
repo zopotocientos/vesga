@@ -56,7 +56,8 @@ export default function DashboardPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setScanMsg(`✓ Done — ${data.sites_scanned} sites, ${data.matches_found} matches (${data.new_matches} new)`)
-setTimeout(load, 1500)
+setTimeout(load, 3000)
+setTimeout(load, 6000)
     } catch (err: any) {
       setScanMsg(`✗ ${err.message}`)
       setScanError(true)
