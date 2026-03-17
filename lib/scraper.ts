@@ -103,36 +103,24 @@ export async function checkUrlPatterns(keyword: string): Promise<UrlPatternResul
   const results: UrlPatternResult[] = []
 
   for (const site of URL_PATTERN_SITES) {
-    const url = `${site.base}${slug}${site.suffix}`
+    const searchUrl = `${site.base}${slug}${site.suffix}`
     try {
-      const response = await axios.get(url, {
+      // Call fapello's AJAX API directly to get exact result count
+      const apiUrl = `https://fapello.com/search_v2/?ajax=1&q=${encodeURIComponent(keyword)}&type=models&limit=1`
+      const response = await axios.get(apiUrl, {
         timeout: 15000,
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; KeywordMonitor/1.0)',
-          Accept: 'text/html',
+          Accept: 'application/json',
         },
-        maxRedirects: 5,
-        validateStatus: (status) => status < 500, // don't throw on 404
       })
 
-      // 200 = profile exists, 404 = doesn't exist
-     if (response.status === 200) {
-        // Verify the slug actually appears in the static HTML
-        // to filter out empty search result pages
-        const pageText = response.data?.toString().toLowerCase() || ''
-        const slug = keywordToSlug(keyword)
-
-        // Check og:title or <title> contains the slug — broad searches won't
-        const titleMatch = pageText.match(/<title[^>]*>(.*?)<\/title>/i)
-        const ogTitleMatch = pageText.match(/og:title.*?content="(.*?)"/i)
-        const titleText = (titleMatch?.[1] || ogTitleMatch?.[1] || '').toLowerCase()
-
-        if (titleText.includes(slug)) {
-          results.push({ keyword, matchUrl: url, exists: true })
-        }
+      const total = response.data?.total ?? 0
+      if (total > 0) {
+        results.push({ keyword, matchUrl: searchUrl, exists: true })
       }
     } catch {
-      // Network error — skip this site
+      // Network error — skip
     }
   }
 
