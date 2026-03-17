@@ -116,8 +116,14 @@ export async function checkUrlPatterns(keyword: string): Promise<UrlPatternResul
       })
 
       // 200 = profile exists, 404 = doesn't exist
-      if (response.status === 200) {
-        results.push({ keyword, matchUrl: url, exists: true })
+     if (response.status === 200) {
+        // Verify the slug actually appears in the static HTML
+        // to filter out empty search result pages
+        const pageText = response.data?.toString().toLowerCase() || ''
+        const slug = keywordToSlug(keyword)
+        if (pageText.includes(slug)) {
+          results.push({ keyword, matchUrl: url, exists: true })
+        }
       }
     } catch {
       // Network error — skip this site
