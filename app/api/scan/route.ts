@@ -73,7 +73,7 @@ export async function POST(request: Request) {
           website_url: website.url,
           website_label: website.label || website.url,
           snippet: match.snippet,
-          match_url: match.matchUrl ?? null,
+          match_url: match.matchUrl ?? website.url,
           is_new: isNew,
         })
 

@@ -58,6 +58,14 @@ export function findMatches(
             l.text.length > 2
         )
         if (fallback) matchUrl = fallback.href
+
+        if (fallback) matchUrl = fallback.href
+    }
+
+    // Final fallback: if no link found, the scanned URL itself is the content link
+    // This handles JS-rendered search pages like fapello search_v2 URLs
+    if (!matchUrl && links.length > 0) {
+      matchUrl = links[0].href
       }
     }
 
