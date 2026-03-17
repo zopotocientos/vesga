@@ -121,7 +121,13 @@ export async function checkUrlPatterns(keyword: string): Promise<UrlPatternResul
         // to filter out empty search result pages
         const pageText = response.data?.toString().toLowerCase() || ''
         const slug = keywordToSlug(keyword)
-        if (pageText.includes(slug)) {
+
+        // Check og:title or <title> contains the slug — broad searches won't
+        const titleMatch = pageText.match(/<title[^>]*>(.*?)<\/title>/i)
+        const ogTitleMatch = pageText.match(/og:title.*?content="(.*?)"/i)
+        const titleText = (titleMatch?.[1] || ogTitleMatch?.[1] || '').toLowerCase()
+
+        if (titleText.includes(slug)) {
           results.push({ keyword, matchUrl: url, exists: true })
         }
       }
