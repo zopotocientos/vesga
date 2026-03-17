@@ -105,8 +105,8 @@ export async function checkUrlPatterns(keyword: string): Promise<UrlPatternResul
   for (const site of URL_PATTERN_SITES) {
     const searchUrl = `${site.base}${slug}${site.suffix}`
     try {
-      // Call fapello's AJAX API directly to get exact result count
-      const apiUrl = `https://fapello.com/search_v2/?ajax=1&q=${encodeURIComponent(keyword)}&type=models&limit=1`
+      // Call fapello's AJAX API using the slug (not the raw keyword)
+      const apiUrl = `https://fapello.com/search_v2/?ajax=1&q=${encodeURIComponent(slug)}&type=models&limit=1`
       const response = await axios.get(apiUrl, {
         timeout: 15000,
         headers: {
@@ -117,6 +117,7 @@ export async function checkUrlPatterns(keyword: string): Promise<UrlPatternResul
 
       const total = response.data?.total ?? 0
       if (total > 0) {
+        // Always use the search URL as the match link, never the base site
         results.push({ keyword, matchUrl: searchUrl, exists: true })
       }
     } catch {
