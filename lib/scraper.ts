@@ -70,6 +70,7 @@ export async function scrapePage(url: string): Promise<ScrapeResult> {
 // e.g. https://fapello.com/marissa-dubois/
 export const URL_PATTERN_SITES: { base: string; suffix: string }[] = [
   { base: 'https://fapello.com/search_v2/', suffix: '/' },
+  { base: 'https://fapopedia.net/', suffix: '/' },
   // Add more sites here as needed, e.g.:
   // { base: 'https://example.com/models/', suffix: '/' },
 ]
