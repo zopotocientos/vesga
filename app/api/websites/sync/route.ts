@@ -1,12 +1,31 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { keywordToSlug } from '@/lib/scraper'
+import { keywordToSlug, keywordToTitleSlug } from '@/lib/scraper'
 
-// Sites that support keyword-as-slug search URLs
-// Add more here as needed
-const PATTERN_SITES = [
-  { base: 'https://fapello.com/search_v2/', suffix: '/', label: 'Fapello' },
+type SlugType = 'slug' | 'title' | 'query'
+
+const PATTERN_SITES: { label: string; base: string; suffix: string; slugFn: SlugType }[] = [
+  { label: 'Fapello',            base: 'https://fapello.com/search_v2/',      suffix: '/', slugFn: 'slug' },
+  { label: 'Fapopedia',          base: 'https://fapopedia.net/',               suffix: '/', slugFn: 'slug' },
+  { label: 'NudoStar TV',        base: 'https://nudostar.tv/models/',          suffix: '/', slugFn: 'slug' },
+  { label: 'Fapeza',             base: 'https://fapeza.com/search/',           suffix: '/', slugFn: 'title' },
+  { label: 'Nudogram',           base: 'https://nudogram.com/search/',         suffix: '/', slugFn: 'title' },
+  { label: 'Faponic',            base: 'https://faponic.com/search/',          suffix: '/', slugFn: 'title' },
+  { label: 'The Fappening Blog', base: 'https://thefappeningblog.com/search/', suffix: '/', slugFn: 'title' },
+  { label: 'Leaked Models',      base: 'https://es.leakedmodels.com/search/?s=', suffix: '', slugFn: 'query' },
 ]
+
+function buildUrl(keyword: string, site: typeof PATTERN_SITES[0]): string {
+  let slug: string
+  if (site.slugFn === 'title') {
+    slug = keywordToTitleSlug(keyword)
+  } else if (site.slugFn === 'query') {
+    slug = encodeURIComponent(keyword.trim())
+  } else {
+    slug = keywordToSlug(keyword)
+  }
+  return `${site.base}${slug}${site.suffix}`
+}
 
 export async function POST() {
   const { data: keywords, error: kwError } = await supabase
@@ -20,28 +39,19 @@ export async function POST() {
   let skipped = 0
 
   for (const keyword of keywords) {
-    const slug = keywordToSlug(keyword.name)
-
     for (const site of PATTERN_SITES) {
-      const url = `${site.base}${slug}${site.suffix}`
+      const url = buildUrl(keyword.name, site)
       const label = `${site.label} — ${keyword.name}`
 
-      // Check if this URL already exists
       const { data: existing } = await supabase
         .from('websites')
         .select('id')
         .eq('url', url)
         .limit(1)
 
-      if (existing?.length) {
-        skipped++
-        continue
-      }
+      if (existing?.length) { skipped++; continue }
 
-      const { error } = await supabase
-        .from('websites')
-        .insert({ url, label })
-
+      const { error } = await supabase.from('websites').insert({ url, label })
       if (!error) added++
     }
   }
